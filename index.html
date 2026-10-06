@@ -3007,7 +3007,7 @@ function character(data,c,prefix,placed=new Set(),complete=false,interactive=fal
   body+='</g>';
  }
  body+=`<g class="head">${sprite(data.art[c.headId],prefix+'-'+c.headId,prefix)}</g>`;
- return `<g class="character" data-character="${c.id}" transform="translate(${c.origin.join(' ')})"><ellipse class="ground-shadow" cx="170" cy="628" rx="130" ry="17" fill="#201127" opacity=".36"/><g class="actor">${body}</g><g class="name-tag"><rect x="112" y="652" width="116" height="34" rx="17" fill="#2d1739" fill-opacity=".8" stroke="${c.accent}" stroke-opacity=".4"/><text x="170" y="675" text-anchor="middle" fill="${c.accent}" font-size="17" font-family="Arial,sans-serif">${c.name}</text></g></g>`;
+ return `<g class="character" data-character="${c.id}" transform="translate(${c.origin.join(' ')})"><g class="actor">${body}</g><g class="name-tag"><rect x="112" y="652" width="116" height="34" rx="17" fill="#2d1739" fill-opacity=".8" stroke="${c.accent}" stroke-opacity=".4"/><text x="170" y="675" text-anchor="middle" fill="${c.accent}" font-size="17" font-family="Arial,sans-serif">${c.name}</text></g></g>`;
 }
 root.SkeletonArt={defs,sprite,character};
 })(typeof window==='undefined'?globalThis:window);
@@ -3085,11 +3085,11 @@ function attempt(id){if(model.phase!=='playing')return;const result=model.place(
 }
 function point(e){const matrix=board.getScreenCTM();return matrix?new DOMPoint(e.clientX,e.clientY).matrixTransform(matrix.inverse()):null;}
 function moveGhost(e){const p=model.current;if(!p)return;const m=board.getScreenCTM();if(!m)return;const scale=Math.hypot(m.a,m.b),b=p.bounds,w=b[2]*scale,h=b[3]*scale;$('ghost').style.width=w+'px';$('ghost').style.height=h+'px';$('ghost').style.left=e.clientX-w/2+'px';$('ghost').style.top=e.clientY-h/2+'px';}
-$('piece').addEventListener('pointerdown',e=>{if(model.phase!=='playing'||drag||(e.pointerType==='mouse'&&e.button!==0))return;ensureAudio();drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};$('piece').setPointerCapture(e.pointerId);});
-$('piece').addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>7&&!drag.moved){drag.moved=true;const p=model.current,b=p.bounds;$('ghost-art').setAttribute('viewBox',`0 0 ${b[2]} ${b[3]}`);$('ghost-art').innerHTML=A.defs(data,'ghost')+A.sprite(p,'ghost-piece','ghost',false,[0,0,b[2],b[3]]);$('ghost').hidden=false;$('piece').classList.add('dragging');}if(drag.moved)moveGhost(e);});
-$('piece').addEventListener('pointerup',e=>{if(!drag||drag.id!==e.pointerId)return;const moved=drag.moved;clearDrag();if(!moved){selectPiece();return;}const p=point(e),target=p&&model.dragTarget(p);attempt(target?.id||'');});
-$('piece').addEventListener('pointercancel',e=>{if(drag&&e.pointerId===drag.id)clearDrag();});
-$('piece').addEventListener('lostpointercapture',e=>{if(drag&&e.pointerId===drag.id&&!$('piece').hasPointerCapture(e.pointerId))clearDrag();});
+$('piece').addEventListener('pointerdown',e=>{if(model.phase!=='playing'||drag||(e.pointerType==='mouse'&&e.button!==0))return;e.preventDefault();ensureAudio();drag={id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};try{$('piece').setPointerCapture(e.pointerId);}catch{}});
+window.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;e.preventDefault();if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>7&&!drag.moved){drag.moved=true;const p=model.current,b=p.bounds;$('ghost-art').setAttribute('viewBox',`0 0 ${b[2]} ${b[3]}`);$('ghost-art').innerHTML=A.defs(data,'ghost')+A.sprite(p,'ghost-piece','ghost',false,[0,0,b[2],b[3]]);$('ghost').hidden=false;$('piece').classList.add('dragging');}if(drag.moved)moveGhost(e);},{passive:false});
+window.addEventListener('pointerup',e=>{if(!drag||drag.id!==e.pointerId)return;e.preventDefault();const moved=drag.moved;const p=moved?point(e):null;clearDrag();if(!moved){selectPiece();return;}const target=p&&model.dragTarget(p);attempt(target?.id||'');},{passive:false});
+window.addEventListener('pointercancel',e=>{if(drag&&e.pointerId===drag.id)clearDrag();});
+$('piece').addEventListener('lostpointercapture',e=>{if(drag&&e.pointerId===drag.id&&e.pointerType==='mouse'&&!$('piece').hasPointerCapture(e.pointerId))clearDrag();});
 $('piece').addEventListener('click',e=>{if(e.detail===0)selectPiece();});
 board.addEventListener('click',e=>{if(!selected||model.phase!=='playing')return;const p=point(e),target=p&&model.tapTarget(p);attempt(target?.id||'');});
 $('start').addEventListener('click',()=>{ensureAudio();loadFailed?loadAssets():start();});
